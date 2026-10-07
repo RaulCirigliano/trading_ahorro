@@ -87,13 +87,40 @@ if (agentProfileSelect) {
 
 // Variables de Simulación (Paper Trading)
 let portfolio = {
+    avgPrice: 0,
     USDT: 100.00,
     ASSET: 0
 };
 
 function updateCapitalDisplay() {
     const total = portfolio.USDT + (portfolio.ASSET * currentPrice);
-    document.getElementById('capitalDisplay').innerText = `$${total.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+    const display = document.getElementById('capitalDisplay');
+    if(display) display.innerText = `$${total.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+    
+    // Update Posiciones Activas
+    const positionsTable = document.getElementById('positionsTable');
+    if (positionsTable) {
+        if (portfolio.ASSET > 0) {
+            const pnl = ((currentPrice - portfolio.avgPrice) * portfolio.ASSET);
+            const pnlClass = pnl >= 0 ? 'text-green-400' : 'text-red-400';
+            const sign = pnl >= 0 ? '+' : '';
+            positionsTable.innerHTML = `
+                <tr class="border-t border-slate-800">
+                    <td class="py-2 font-bold">${currentSymbol}</td>
+                    <td class="py-2 text-green-400 font-bold">LONG</td>
+                    <td class="py-2">$${portfolio.avgPrice.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
+                    <td class="py-2">$${currentPrice.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
+                    <td class="py-2 ${pnlClass} font-bold">${sign}$${pnl.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                </tr>
+            `;
+        } else {
+            positionsTable.innerHTML = `
+                <tr class="text-slate-500 italic">
+                    <td colspan="5" class="py-4 text-center">No hay posiciones abiertas por el agente</td>
+                </tr>
+            `;
+        }
+    }
 }
 
 symbolSelect.addEventListener('change', () => {
@@ -200,9 +227,34 @@ function requestTradeApproval(td) {
     }
 }
 
+
+async function recordTrade(activo, tipo, precio, modo) {
+    const tradeData = {
+        hora: new Date().toLocaleString(),
+        activo: activo,
+        tipo: tipo,
+        precio: precio,
+        estado: "COMPLETADO",
+        modo: modo
+    };
+    try {
+        await fetch(`http://localhost:8766/api/trades`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(tradeData)
+        });
+        fetchTrades();
+    } catch (e) {
+        console.error("Error al guardar operación:", e);
+    }
+}
+
 function finalizeTrade(td) {
     if (td.tipo === 'COMPRAR') {
+        const totalValueBefore = portfolio.ASSET * portfolio.avgPrice;
+        const newValue = td.qty * td.precio;
         portfolio.ASSET += td.qty;
+        portfolio.avgPrice = (totalValueBefore + newValue) / portfolio.ASSET;
         portfolio.USDT -= td.amountToBuy;
         logToTerminal(`🏛️ EJECUTADO: Comprado ${td.qty.toFixed(4)} ${td.baseCoin} a $${td.precio}. USDT Restante: $${portfolio.USDT.toFixed(2)}`, 'action');
     } else if (td.tipo === 'VENDER') {
@@ -211,7 +263,7 @@ function finalizeTrade(td) {
         logToTerminal(`💵 EJECUTADO: Vendido ${td.baseCoin} a $${td.precio}. Nuevo Saldo USDT: $${portfolio.USDT.toFixed(2)}`, 'error');
     }
     updateCapitalDisplay();
-    recordTrade(td.tipo, td.precio, td.modoTrade);
+    recordTrade(td.baseCoin, td.tipo, td.precio, td.modoTrade);
 }
 
 // Ciclo de IA
@@ -245,26 +297,7 @@ agentToggle.addEventListener('click', () => {
                     // Lógica de Paper Trading
                     const baseCoin = currentSymbol.split('-')[0].replace('=F', '');
                     
-                    async function recordTrade(tipo, precio, modo) {
-                        const tradeData = {
-                            hora: new Date().toLocaleString(),
-                            activo: currentSymbol,
-                            tipo: tipo,
-                            precio: precio,
-                            estado: "COMPLETADO",
-                            modo: modo
-                        };
-                        try {
-                            await fetch(`http://localhost:8766/api/trades`, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify(tradeData)
-                            });
-                            fetchTrades();
-                        } catch (e) {
-                            console.error("Error al guardar operación:", e);
-                        }
-                    }
+
 
                     if (agentProfile === 'investor') {
                         // Lógica Institucional Largo Plazo (DCA y Value Investing)
