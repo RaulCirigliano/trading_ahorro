@@ -154,30 +154,20 @@
                 </div>
 
                 <div class="mb-4 bg-slate-950 p-3 rounded border border-blue-600/50">
-                    <p class="text-[10px] text-blue-400 uppercase font-bold mb-2">Modo de Ejecución</p>
+                    <p class="text-[10px] text-blue-400 uppercase font-bold mb-2">Permisos de Operación</p>
                     <select id="executionModeSelect" class="w-full bg-slate-800 text-white text-xs rounded p-1 border border-slate-700 cursor-pointer">
-                        <option class="bg-slate-900 text-white" value="copiloto" selected>👨‍✈️ Copiloto (Aprobar manualmente)</option>
-                        <option class="bg-slate-900 text-white" value="autonomo">🤖 Autónomo (100% Automático)</option>
+                        <option class="bg-slate-900 text-white" value="copiloto" selected>👨‍✈️ Modo Copiloto (Preguntarme antes de operar)</option>
+                        <option class="bg-slate-900 text-white" value="autonomo">🤖 Modo Autónomo (Comprar/Vender automáticamente)</option>
                     </select>
                 </div>
 
                 <div class="mb-4 bg-slate-950 p-3 rounded border border-amber-600/50">
-                    <p class="text-[10px] text-amber-400 uppercase font-bold mb-2">Motor de Decisión (Orquestador)</p>
-                    
+                    <p class="text-[10px] text-amber-400 uppercase font-bold mb-2">Cerebro Analítico (Quién Piensa)</p>
                     <div class="space-y-3">
                         <div>
-                            <label class="text-xs text-slate-400 mb-1 block">Inteligencia Principal:</label>
                             <select id="engineSelect" class="w-full bg-slate-800 text-white text-xs rounded p-1 border border-slate-700 cursor-pointer">
-                                <option value="local">🤖 Matemático Local (Python/Gratis)</option>
-                                <option value="ai">🧠 Inteligencia Artificial (Gemini Pro API)</option>
-                            </select>
-                        </div>
-                        
-                        <div>
-                            <label class="text-xs text-slate-400 mb-1 block">Modo de Ejecución:</label>
-                            <select class="w-full bg-slate-800 text-white text-xs rounded p-1 border border-slate-700 cursor-pointer">
-                                <option>Modo Copiloto (Preguntar antes de operar)</option>
-                                <option>Trading Autónomo (Ejecutar directo)</option>
+                                <option class="bg-slate-900 text-white" value="local">⚙️ Fórmulas Matemáticas y RSI (Gratis/Rápido)</option>
+                                <option class="bg-slate-900 text-white" value="ai" disabled>🧠 Escuadrón CrewAI con Gemini Pro (Requiere API)</option>
                             </select>
                         </div>
                     </div>
