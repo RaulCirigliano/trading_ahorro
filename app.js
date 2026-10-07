@@ -60,8 +60,30 @@ const smaSeries = chart.addLineSeries({
 });
 
 const symbolSelect = document.getElementById('symbolSelect');
+const agentProfileSelect = document.getElementById('agentProfileSelect');
+const chartTimeframeLabel = document.getElementById('chartTimeframeLabel');
+const chartSymbolTitle = document.getElementById('chartSymbolTitle');
 let currentSymbol = symbolSelect.value;
 let currentPrice = 0;
+let agentProfile = agentProfileSelect ? agentProfileSelect.value : 'scalper';
+let currentTimeframe = agentProfile === 'investor' ? '1d' : '1m';
+
+if (agentProfileSelect) {
+    agentProfileSelect.addEventListener('change', () => {
+        agentProfile = agentProfileSelect.value;
+        logToTerminal(`Cambiando perfil a ${agentProfile === 'investor' ? 'Inversor Institucional' : 'Simulador Educativo'}...`, 'warn');
+        if (agentProfile === 'investor') {
+            currentTimeframe = '1d';
+            chartTimeframeLabel.innerText = 'Temporalidad: 1 Día';
+        } else {
+            currentTimeframe = '1m';
+            chartTimeframeLabel.innerText = 'Temporalidad: 1 Minuto';
+        }
+        candleSeries.setData([]);
+        smaSeries.setData([]);
+        fetchMarketData();
+    });
+}
 
 // Variables de Simulación (Paper Trading)
 let portfolio = {
@@ -76,6 +98,7 @@ function updateCapitalDisplay() {
 
 symbolSelect.addEventListener('change', () => {
     currentSymbol = symbolSelect.value;
+    if (chartSymbolTitle) chartSymbolTitle.innerText = currentSymbol.split('/')[0] + '/USD';
     logToTerminal(`Cambiando activo a ${currentSymbol}...`, 'warn');
     candleSeries.setData([]); // Limpiar gráfico
     smaSeries.setData([]);
@@ -87,7 +110,7 @@ symbolSelect.addEventListener('change', () => {
 async function fetchMarketData() {
     try {
         logToTerminal(`Conectando al motor Python para obtener velas de ${currentSymbol}...`, 'info');
-        const response = await fetch(`http://localhost:8765/api/market/history?symbol=${currentSymbol}&timeframe=1m`);
+        const response = await fetch(`http://localhost:8765/api/market/history?symbol=${currentSymbol}&timeframe=${currentTimeframe}`);
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         
         const data = await response.json();
@@ -137,7 +160,7 @@ agentToggle.addEventListener('click', () => {
             const engine = document.getElementById('engineSelect')?.value || 'local';
             logToTerminal(`Consultando Orquestador (${currentSymbol}) vía ${engine.toUpperCase()}...`, 'info');
             try {
-                const response = await fetch(`http://localhost:8765/api/market/analysis?symbol=${currentSymbol}&timeframe=1m&engine=${engine}`);
+                const response = await fetch(`http://localhost:8765/api/market/analysis?symbol=${currentSymbol}&timeframe=${currentTimeframe}&engine=${engine}`);
                 const data = await response.json();
                 
                 if (data && !data.error) {
@@ -150,19 +173,49 @@ agentToggle.addEventListener('click', () => {
                     
                     // Lógica de Paper Trading
                     const baseCoin = currentSymbol.split('/')[0];
-                    if (data.signal === 'COMPRAR' && portfolio.USDT > 10) { // Comprar todo si hay saldo
-                        const cantidadAComprar = portfolio.USDT / currentPrice;
-                        portfolio.ASSET += cantidadAComprar;
-                        portfolio.USDT = 0;
-                        logToTerminal(`💰 SIMULACIÓN: COMPRADO ${cantidadAComprar.toFixed(4)} ${baseCoin} a $${currentPrice}`, 'action');
-                        updateCapitalDisplay();
-                    } 
-                    else if (data.signal === 'VENDER' && portfolio.ASSET > 0.0001) { // Vender todo
-                        const dolaresObtenidos = portfolio.ASSET * currentPrice;
-                        portfolio.USDT += dolaresObtenidos;
-                        portfolio.ASSET = 0;
-                        logToTerminal(`💵 SIMULACIÓN: VENDIDO ${baseCoin} a $${currentPrice}. Nuevo Saldo USDT: $${portfolio.USDT.toFixed(2)}`, 'error');
-                        updateCapitalDisplay();
+                    if (agentProfile === 'investor') {
+                        // Lógica Institucional Largo Plazo (DCA y Value Investing)
+                        const rsi = data.indicators.rsi;
+                        let amountToBuy = 0;
+                        let reason = "";
+
+                        // Pánico extremo (Value Investing)
+                        if (rsi && rsi < 30 && portfolio.USDT > 1000) {
+                            amountToBuy = 1000; // Comprar fuerte en caída
+                            reason = "💰 FONDO OPORTUNIDAD: Pánico histórico (RSI < 30). Comprando en OFERTA!";
+                        } 
+                        // DCA habitual
+                        else if (portfolio.USDT >= 100) {
+                            amountToBuy = 100;
+                            reason = "📅 DCA: Compra automática programada de $100 USD.";
+                        }
+
+                        if (amountToBuy > 0) {
+                            const qty = amountToBuy / currentPrice;
+                            portfolio.ASSET += qty;
+                            portfolio.USDT -= amountToBuy;
+                            logToTerminal(reason, 'action');
+                            logToTerminal(`🏛️ INVERSOR: Comprado ${qty.toFixed(4)} ${baseCoin} a $${currentPrice}. USDT Restante: $${portfolio.USDT.toFixed(2)}`, 'action');
+                            updateCapitalDisplay();
+                        } else if (portfolio.USDT < 100) {
+                            logToTerminal(`🏛️ INVERSOR: Sin fondos suficientes para DCA. HODL.`, 'warn');
+                        }
+                    } else {
+                        // Lógica de Scalping (todo o nada)
+                        if (data.signal === 'COMPRAR' && portfolio.USDT > 10) { // Comprar todo si hay saldo
+                            const cantidadAComprar = portfolio.USDT / currentPrice;
+                            portfolio.ASSET += cantidadAComprar;
+                            portfolio.USDT = 0;
+                            logToTerminal(`💰 SIMULACIÓN: COMPRADO ${cantidadAComprar.toFixed(4)} ${baseCoin} a $${currentPrice}`, 'action');
+                            updateCapitalDisplay();
+                        } 
+                        else if (data.signal === 'VENDER' && portfolio.ASSET > 0.0001) { // Vender todo
+                            const dolaresObtenidos = portfolio.ASSET * currentPrice;
+                            portfolio.USDT += dolaresObtenidos;
+                            portfolio.ASSET = 0;
+                            logToTerminal(`💵 SIMULACIÓN: VENDIDO ${baseCoin} a $${currentPrice}. Nuevo Saldo USDT: $${portfolio.USDT.toFixed(2)}`, 'error');
+                            updateCapitalDisplay();
+                        }
                     }
                 } else {
                     logToTerminal('Error de análisis: ' + data.error, 'error');
@@ -183,7 +236,7 @@ agentToggle.addEventListener('click', () => {
 // Ciclo de Gráfico en Vivo (Cada 2 segundos) para que se mueva rápido
 setInterval(async () => {
     try {
-        const response = await fetch(`http://localhost:8765/api/market/history?symbol=${currentSymbol}&timeframe=1m`);
+        const response = await fetch(`http://localhost:8765/api/market/history?symbol=${currentSymbol}&timeframe=${currentTimeframe}`);
         const data = await response.json();
         if (data && data.length > 0) {
             const latest_candle = data[data.length - 1];

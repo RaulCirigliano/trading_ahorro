@@ -43,7 +43,7 @@
             <!-- Gráfico de Trading -->
             <div class="bg-gray-800 rounded-lg p-4 shadow-lg border border-gray-700">
                 <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-lg font-semibold">BTC/USD <span class="text-sm text-gray-400 font-normal">Temporalidad: 1 Minuto</span></h2>
+                    <h2 class="text-lg font-semibold"><span id="chartSymbolTitle">BTC/USD</span> <span id="chartTimeframeLabel" class="text-sm text-gray-400 font-normal">Temporalidad: 1 Minuto</span></h2>
                     <span class="text-green-500 font-mono" id="currentPrice">$--.---</span>
                 </div>
                 <div id="chart-container" class="w-full h-[400px]"></div>
@@ -115,6 +115,14 @@
                             <div class="w-9 h-5 bg-gray-600 rounded-full"></div>
                         </label>
                     </div>
+                </div>
+
+                <div class="mb-4 bg-gray-900 p-3 rounded border border-green-600/50">
+                    <p class="text-[10px] text-green-400 uppercase font-bold mb-2">Perfil del Agente (Estrategia)</p>
+                    <select id="agentProfileSelect" class="w-full bg-gray-700 text-white text-xs rounded p-1 border border-gray-600 cursor-pointer">
+                        <option value="scalper">⚡ Simulador Educativo (Scalper 1 Minuto)</option>
+                        <option value="investor">🏛️ Inversor Institucional (Largo Plazo / DCA)</option>
+                    </select>
                 </div>
 
                 <div class="mb-4 bg-gray-900 p-3 rounded border border-blue-600/50">
