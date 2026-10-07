@@ -92,6 +92,21 @@ let portfolio = {
     ASSET: 0
 };
 
+function closePositionManually() {
+    if (portfolio.ASSET <= 0) return;
+    
+    const dolaresObtenidos = portfolio.ASSET * currentPrice;
+    portfolio.USDT += dolaresObtenidos;
+    
+    logToTerminal(`🚨 CIERRE DE EMERGENCIA: Posición cerrada manualmente a $${currentPrice.toLocaleString(undefined, {maximumFractionDigits: 2})}. Recuperado: $${dolaresObtenidos.toLocaleString(undefined, {maximumFractionDigits: 2})}`, 'error');
+    
+    portfolio.ASSET = 0;
+    portfolio.avgPrice = 0;
+    
+    updateCapitalDisplay();
+    recordTrade(currentSymbol, "VENDER", currentPrice, "Cierre Manual");
+}
+
 function updateCapitalDisplay() {
     const total = portfolio.USDT + (portfolio.ASSET * currentPrice);
     const display = document.getElementById('capitalDisplay');
@@ -111,12 +126,13 @@ function updateCapitalDisplay() {
                     <td class="py-2">$${portfolio.avgPrice.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
                     <td class="py-2">$${currentPrice.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
                     <td class="py-2 ${pnlClass} font-bold">${sign}$${pnl.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                    <td class="py-2"><button onclick="closePositionManually()" class="bg-red-600 hover:bg-red-700 text-white text-xs px-2 py-1 rounded font-bold transition shadow-md shadow-red-900/50">✖️ Cerrar</button></td>
                 </tr>
             `;
         } else {
             positionsTable.innerHTML = `
                 <tr class="text-slate-500 italic">
-                    <td colspan="5" class="py-4 text-center">No hay posiciones abiertas por el agente</td>
+                    <td colspan="6" class="py-4 text-center">No hay posiciones abiertas por el agente</td>
                 </tr>
             `;
         }
