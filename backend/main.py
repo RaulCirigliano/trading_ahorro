@@ -129,7 +129,9 @@ def get_analysis(symbol: str = "SPY", timeframe: str = "1d", engine: str = "loca
         ticker = yf.Ticker(symbol)
         interval_map = {"1d": "1d", "1w": "1wk", "1m": "1m"}
         yf_interval = interval_map.get(timeframe, "1d")
-        df = ticker.history(period="1y", interval=yf_interval)
+        
+        period = "2y" if yf_interval in ["1d", "1wk"] else "7d"
+        df = ticker.history(period=period, interval=yf_interval)
         
         if df.empty:
             return {"error": "Empty data"}
