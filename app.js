@@ -32,11 +32,11 @@ const chartOptions = {
         background: { type: 'solid', color: 'transparent' },
     },
     grid: {
-        vertLines: { color: 'rgba(55, 65, 81, 0.5)' },
-        horzLines: { color: 'rgba(55, 65, 81, 0.5)' },
+        vertLines: { color: 'rgba(30, 41, 59, 0.5)' },
+        horzLines: { color: 'rgba(30, 41, 59, 0.5)' },
     },
-    rightPriceScale: { borderColor: 'rgba(55, 65, 81, 1)' },
-    timeScale: { borderColor: 'rgba(55, 65, 81, 1)', timeVisible: true },
+    rightPriceScale: { borderColor: 'rgba(30, 41, 59, 1)' },
+    timeScale: { borderColor: 'rgba(30, 41, 59, 1)', timeVisible: true },
 };
 
 const chartContainer = document.getElementById('chart-container');
@@ -53,7 +53,7 @@ const candleSeries = chart.addCandlestickSeries({
 });
 
 const smaSeries = chart.addLineSeries({
-    color: '#3b82f6', // Azul brillante para la SMA 20
+    color: '#f59e0b', // Azul brillante para la SMA 20
     lineWidth: 2,
     crosshairMarkerVisible: false,
     priceLineVisible: false,
@@ -110,7 +110,7 @@ symbolSelect.addEventListener('change', () => {
 async function fetchMarketData() {
     try {
         logToTerminal(`Conectando al motor Python para obtener velas de ${currentSymbol}...`, 'info');
-        const response = await fetch(`http://localhost:8765/api/market/history?symbol=${currentSymbol}&timeframe=${currentTimeframe}`);
+        const response = await fetch(`http://localhost:8766/api/market/history?symbol=${currentSymbol}&timeframe=${currentTimeframe}`);
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         
         const data = await response.json();
@@ -160,7 +160,7 @@ agentToggle.addEventListener('click', () => {
             const engine = document.getElementById('engineSelect')?.value || 'local';
             logToTerminal(`Consultando Orquestador (${currentSymbol}) vía ${engine.toUpperCase()}...`, 'info');
             try {
-                const response = await fetch(`http://localhost:8765/api/market/analysis?symbol=${currentSymbol}&timeframe=${currentTimeframe}&engine=${engine}`);
+                const response = await fetch(`http://localhost:8766/api/market/analysis?symbol=${currentSymbol}&timeframe=${currentTimeframe}&engine=${engine}`);
                 const data = await response.json();
                 
                 if (data && !data.error) {
@@ -236,7 +236,7 @@ agentToggle.addEventListener('click', () => {
 // Ciclo de Gráfico en Vivo (Cada 2 segundos) para que se mueva rápido
 setInterval(async () => {
     try {
-        const response = await fetch(`http://localhost:8765/api/market/history?symbol=${currentSymbol}&timeframe=${currentTimeframe}`);
+        const response = await fetch(`http://localhost:8766/api/market/history?symbol=${currentSymbol}&timeframe=${currentTimeframe}`);
         const data = await response.json();
         if (data && data.length > 0) {
             const latest_candle = data[data.length - 1];
@@ -260,7 +260,7 @@ setInterval(async () => {
 async function updateSentiment() {
     try {
         const source = document.getElementById('newsSourceSelect')?.value || 'coindesk';
-        const response = await fetch(`http://localhost:8765/api/market/sentiment?symbol=${currentSymbol}&source=${source}`);
+        const response = await fetch(`http://localhost:8766/api/market/sentiment?symbol=${currentSymbol}&source=${source}`);
         const data = await response.json();
         if (data && !data.error) {
             const badge = document.getElementById('sentimentScoreBadge');
