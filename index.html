@@ -153,6 +153,14 @@
                     </select>
                 </div>
 
+                <div class="mb-4 bg-slate-950 p-3 rounded border border-blue-600/50">
+                    <p class="text-[10px] text-blue-400 uppercase font-bold mb-2">Modo de Ejecución</p>
+                    <select id="executionModeSelect" class="w-full bg-slate-800 text-white text-xs rounded p-1 border border-slate-700 cursor-pointer">
+                        <option value="copiloto" selected>👨‍✈️ Copiloto (Aprobar manualmente)</option>
+                        <option value="autonomo">🤖 Autónomo (100% Automático)</option>
+                    </select>
+                </div>
+
                 <div class="mb-4 bg-slate-950 p-3 rounded border border-amber-600/50">
                     <p class="text-[10px] text-amber-400 uppercase font-bold mb-2">Motor de Decisión (Orquestador)</p>
                     
@@ -224,5 +232,19 @@
     </div>
 
     <script src="app.js"></script>
+    <!-- Modal de Operación -->
+    <div id="tradeModal" class="fixed inset-0 bg-black/80 flex items-center justify-center hidden z-50">
+        <div class="bg-slate-900 border border-slate-700 rounded-lg p-6 max-w-md w-full shadow-2xl">
+            <h3 id="tradeModalTitle" class="text-xl font-bold mb-4 text-white border-b border-slate-800 pb-2">Notificación</h3>
+            <div id="tradeModalBody" class="text-sm text-slate-300 mb-6 space-y-2">
+                <!-- Contenido dinámico -->
+            </div>
+            <div class="flex justify-end space-x-3">
+                <button id="tradeModalReject" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded font-bold transition hidden">Rechazar</button>
+                <button id="tradeModalAccept" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded font-bold transition hidden">Aceptar Operación</button>
+                <button id="tradeModalOk" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded font-bold transition hidden">Entendido</button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

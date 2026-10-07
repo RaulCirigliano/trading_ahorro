@@ -144,7 +144,78 @@ window.addEventListener('resize', () => {
     chart.applyOptions({ width: chartContainer.clientWidth });
 });
 
-// Ciclo de IA (Cada 15 segundos)
+
+let isWaitingForApproval = false;
+
+function requestTradeApproval(td) {
+    if (isWaitingForApproval) return;
+    
+    const mode = document.getElementById('executionModeSelect') ? document.getElementById('executionModeSelect').value : 'copiloto';
+    const modal = document.getElementById('tradeModal');
+    if(!modal) { finalizeTrade(td); return; }
+    
+    const title = document.getElementById('tradeModalTitle');
+    const body = document.getElementById('tradeModalBody');
+    const btnAccept = document.getElementById('tradeModalAccept');
+    const btnReject = document.getElementById('tradeModalReject');
+    const btnOk = document.getElementById('tradeModalOk');
+
+    modal.classList.remove('hidden');
+    isWaitingForApproval = true;
+
+    const actionText = td.tipo === 'COMPRAR' ? `<span class="text-green-500 font-bold">COMPRA</span>` : `<span class="text-red-500 font-bold">VENTA</span>`;
+
+    if (mode === 'autonomo') {
+        title.innerHTML = "🤖 Operación Automática Ejecutada";
+        body.innerHTML = `El agente acaba de ejecutar la siguiente operación de forma autónoma:<br><br><b>Acción:</b> ${actionText}<br><b>Activo:</b> ${td.baseCoin}<br><b>Precio:</b> $${td.precio.toLocaleString()}<br><b>Estrategia:</b> ${td.modoTrade}<br><b>Razón:</b> ${td.reason}`;
+        
+        btnAccept.classList.add('hidden');
+        btnReject.classList.add('hidden');
+        btnOk.classList.remove('hidden');
+        
+        btnOk.onclick = () => {
+            modal.classList.add('hidden');
+            isWaitingForApproval = false;
+        };
+
+        finalizeTrade(td);
+    } else {
+        title.innerHTML = "👨‍✈️ Modo Copiloto: Se requiere tu permiso";
+        body.innerHTML = `El agente sugiere la siguiente operación. ¿Autorizas que se ejecute en tu cuenta?<br><br><b>Acción:</b> ${actionText}<br><b>Activo:</b> ${td.baseCoin}<br><b>Precio:</b> $${td.precio.toLocaleString()}<br><b>Estrategia:</b> ${td.modoTrade}<br><b>Razón:</b> ${td.reason}`;
+        
+        btnAccept.classList.remove('hidden');
+        btnReject.classList.remove('hidden');
+        btnOk.classList.add('hidden');
+
+        btnAccept.onclick = () => {
+            finalizeTrade(td);
+            modal.classList.add('hidden');
+            isWaitingForApproval = false;
+        };
+        btnReject.onclick = () => {
+            logToTerminal("👨‍✈️ COPILOTO: Has rechazado la operación sugerida por el agente.", "error");
+            modal.classList.add('hidden');
+            isWaitingForApproval = false;
+        };
+    }
+}
+
+function finalizeTrade(td) {
+    if (td.tipo === 'COMPRAR') {
+        portfolio.ASSET += td.qty;
+        portfolio.USDT -= td.amountToBuy;
+        logToTerminal(`🏛️ EJECUTADO: Comprado ${td.qty.toFixed(4)} ${td.baseCoin} a $${td.precio}. USDT Restante: $${portfolio.USDT.toFixed(2)}`, 'action');
+    } else if (td.tipo === 'VENDER') {
+        portfolio.USDT += td.dolaresObtenidos;
+        portfolio.ASSET = 0;
+        logToTerminal(`💵 EJECUTADO: Vendido ${td.baseCoin} a $${td.precio}. Nuevo Saldo USDT: $${portfolio.USDT.toFixed(2)}`, 'error');
+    }
+    updateCapitalDisplay();
+    recordTrade(td.tipo, td.precio, td.modoTrade);
+}
+
+// Ciclo de IA
+
 let isAgentActive = false;
 let simulateInterval;
 
@@ -217,12 +288,15 @@ agentToggle.addEventListener('click', () => {
 
                         if (amountToBuy > 0) {
                             const qty = amountToBuy / currentPrice;
-                            portfolio.ASSET += qty;
-                            portfolio.USDT -= amountToBuy;
-                            logToTerminal(reason, 'action');
-                            logToTerminal(`🏛️ INVERSOR: Comprado ${qty.toFixed(4)} ${baseCoin} a $${currentPrice}. USDT Restante: $${portfolio.USDT.toFixed(2)}`, 'action');
-                            updateCapitalDisplay();
-                            recordTrade("COMPRAR", currentPrice, modoTrade);
+                            requestTradeApproval({
+                                tipo: 'COMPRAR',
+                                baseCoin: baseCoin,
+                                precio: currentPrice,
+                                modoTrade: modoTrade,
+                                reason: reason,
+                                amountToBuy: amountToBuy,
+                                qty: qty
+                            });
                         } else if (portfolio.USDT < 100) {
                             logToTerminal(`🏛️ INVERSOR: Sin fondos suficientes para DCA. HODL.`, 'warn');
                         }
@@ -230,19 +304,26 @@ agentToggle.addEventListener('click', () => {
                         // Lógica de Scalping (todo o nada)
                         if (data.signal === 'COMPRAR' && portfolio.USDT > 10) { // Comprar todo si hay saldo
                             const cantidadAComprar = portfolio.USDT / currentPrice;
-                            portfolio.ASSET += cantidadAComprar;
-                            portfolio.USDT = 0;
-                            logToTerminal(`💰 SIMULACIÓN: COMPRADO ${cantidadAComprar.toFixed(4)} ${baseCoin} a $${currentPrice}`, 'action');
-                            updateCapitalDisplay();
-                            recordTrade("COMPRAR", currentPrice, "Scalping");
+                            requestTradeApproval({
+                                tipo: 'COMPRAR',
+                                baseCoin: baseCoin,
+                                precio: currentPrice,
+                                modoTrade: 'Scalping',
+                                reason: 'Señal técnica de compra fuerte detectada en 1 minuto.',
+                                amountToBuy: portfolio.USDT,
+                                qty: cantidadAComprar
+                            });
                         } 
                         else if (data.signal === 'VENDER' && portfolio.ASSET > 0.0001) { // Vender todo
                             const dolaresObtenidos = portfolio.ASSET * currentPrice;
-                            portfolio.USDT += dolaresObtenidos;
-                            portfolio.ASSET = 0;
-                            logToTerminal(`💵 SIMULACIÓN: VENDIDO ${baseCoin} a $${currentPrice}. Nuevo Saldo USDT: $${portfolio.USDT.toFixed(2)}`, 'error');
-                            updateCapitalDisplay();
-                            recordTrade("VENDER", currentPrice, "Scalping");
+                            requestTradeApproval({
+                                tipo: 'VENDER',
+                                baseCoin: baseCoin,
+                                precio: currentPrice,
+                                modoTrade: 'Scalping',
+                                reason: 'Señal de sobrecompra / Peligro detectado, vendiendo activos.',
+                                dolaresObtenidos: dolaresObtenidos
+                            });
                         }
                     }
                 } else {
