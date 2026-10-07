@@ -1,65 +1,40 @@
-# Proyecto AI Trading Agent - Contexto y Plan de Acción
+# Proyecto Trading Ahorros - Contexto y Funcionalidades
 
 ## Visión General
-Este proyecto es una plataforma integral para traders profesionales que combina la ingesta de datos de mercado en tiempo real, análisis técnico/fundamental y la ejecución automatizada de estrategias a través de agentes de Inteligencia Artificial.
+Este proyecto es un "robo-advisor" y simulador de Paper Trading diseñado específicamente para estrategias de **Ahorro a Largo Plazo (DCA)** y **Value Investing**. A diferencia de los bots de scalping, esta plataforma se centra en crear riqueza promediando costos a lo largo de meses/años, o detectando pánicos históricos de mercado para invertir en activos tradicionales.
 
-## Estado Actual (Prototipo V1)
-- [x] Inicialización del proyecto.
-- [x] Creación de Dashboard UI (HTML/CSS/JS) para la visualización de datos y panel de control del agente.
-- [x] Definición del documento de contexto y planificación.
+## Arquitectura y Stack Tecnológico
+- **Frontend (`index.html`, `app.js`)**: Aplicación cliente estática que utiliza Lightweight Charts para gráficas y Tailwind CSS para el diseño (tema Slate/Amber). Funciona de forma desconectada del renderizado del servidor. Implementa persistencia local (`localStorage`) para el saldo de la billetera.
+- **Backend (`backend/main.py`)**: API REST construida con **FastAPI** corriendo en el puerto `8766`. Usa `yfinance` para proporcionar datos reales de bolsas mundiales.
+- **Persistencia de Historial**: El backend guarda y lee las operaciones de compra/venta en `backend/trades_history.json`.
 
-## Arquitectura Planeada
+## Funcionalidades y Herramientas Implementadas
 
-1. **Frontend (Dashboard):** Interfaz para monitorear el mercado, el estado del agente y el rendimiento. (Actual: Prototipo estático HTML/JS).
-2. **Backend (API):** Servidor (planeado en Python/FastAPI) para manejar la lógica de negocio, comunicarse con los exchanges y orquestar a los agentes.
-3. **Agentes de IA:** Scripts en Python que evaluarán estrategias (Ej. LangChain / Modelos Predictivos).
-4. **Conector de Exchange:** Integración con brokers (ej. Binance Testnet, Alpaca) para paper trading.
+### 1. Sistema de Paper Trading Robusto
+- **Billetera Persistente**: Inicializa con $100.00 USD. Los fondos y activos se guardan en el navegador (`localStorage`). Incluye botón de reseteo (`🔄`).
+- **Posiciones y PNL en Vivo**: Tabla de posiciones activas que calcula ganancias y pérdidas en tiempo real frente al precio promedio de compra.
+- **Cierre de Emergencia (Panic Button)**: Permite liquidar el 100% de la posición activa de inmediato para retornar a dólares mediante un botón rojo de "✖️ Cerrar".
+- **Historial de Transacciones**: Tabla con el registro perpetuo de las transacciones (fecha, tipo, modo, precio).
 
-## Plan de Acción a Futuro
+### 2. Modos de Ejecución (Seguridad)
+- **👨‍✈️ Copiloto (Interactivo)**: El agente pausa el sistema al detectar una oportunidad y lanza una ventana emergente detallando la lógica, el precio y el modo, solicitando confirmación manual (Aceptar/Rechazar).
+- **🤖 Autónomo**: El agente compra automáticamente sin intervención del usuario e informa mediante notificaciones en pantalla.
 
-### Fase 1: Base Visual y Conexión de Datos (Próximos Pasos)
-- [ ] Convertir el prototipo frontend a una aplicación estructurada (React o servir el HTML con FastAPI).
-- [ ] Conectar un flujo de datos real (WebSockets de Binance o Polygon.io) para actualizar el gráfico en tiempo real en el Dashboard.
-- [ ] Implementar un backend básico en Python para servir los datos al frontend.
+### 3. Perfiles del Agente (Estrategias)
+- **🏛️ Inversor Institucional (DCA / Largo Plazo)**: 
+  - Opera sobre velas de **1 Día**.
+  - **DCA Automático**: Invierte $10 fijos periódicamente.
+  - **Fondo de Oportunidad**: Invierte $50 de golpe si detecta pánico extremo (RSI < 30).
+- **⚡ Simulador Educativo (Scalper 1 Minuto)**: 
+  - Opera sobre velas de **1 Minuto**. 
+  - Gasta y vende el 100% de los fondos basándose en cruces rápidos de Media Móvil (SMA20) y RSI. (Ideal para testing rápido de UI).
 
-### Fase 2: El Cerebro del Agente (Paper Trading)
-- [ ] Desarrollar el primer "Agente Analista" en Python capaz de procesar OHLCV (Velas) y calcular indicadores técnicos básicos.
-- [ ] Conectar el backend con una API de simulación (Paper Trading).
-- [ ] Integrar un botón en el UI para activar/desactivar al agente y ver su log de decisiones.
+### 4. Mercados Globales Compatibles (`yfinance`)
+- **Tradicionales**: SPY (S&P 500), QQQ (Nasdaq 100), Oro (GC=F), BTC-USD.
+- **Transición y Emergentes**: MCHI (Mercado Chino), KWEB (Gigantes Web China).
+- **IA y Futuro**: BOTZ (Robótica y AI), NVDA (Nvidia).
 
-### Fase 3: Análisis Fundamental e Interfaz Conversacional (Asistente)
-- [ ] Integrar un LLM (OpenAI / Gemini) para analizar feeds de noticias y generar un score de sentimiento.
-- [ ] Mostrar alertas en el dashboard cuando el agente detecte oportunidades claras, requiriendo aprobación manual del trader (Modo Copiloto).
-
-### Fase 4: Trading Autónomo y Gestión de Riesgos
-- [ ] Implementar reglas duras de gestión de riesgo (Stop Loss máximo por día, tamaño de posición dinámico).
-- [ ] Transición a cuenta real con capital de prueba (Live Trading).
-- [ ] Añadir panel de métricas de rendimiento avanzadas (Sharpe Ratio, Max Drawdown).
-
-## Notas Técnicas
-- **Ruta del Proyecto:** `/home/raul/Escritorio/proyectos/triding`
-- Se sugiere usar entornos virtuales (`venv`) para el desarrollo en Python futuro.
-
-
-## Notas Adicionales y Estrategia
-
-Entiendo perfectamente lo que buscas. Quieres crear una gran base de conocimiento (documentos, estrategias y videos de trading) para que, al momento de programar y diseñar tu proyecto aquí conmigo, yo entienda tu visión y estrategias con exactitud. Dado que estamos trabajando en este entorno de desarrollo, **no puedo conectarme directamente a tu cuenta web personal de NotebookLM**, pero podemos lograr exactamente lo que quieres de dos formas mucho más directas y potentes:
-
-### Opción 1: Usar este mismo chat como tu "Cuaderno"
-El modelo de IA que utilizo (Gemini) tiene una capacidad de memoria enorme (ventana de contexto). Esto significa que **puedes subir toda tu información directamente a este chat o al espacio de trabajo**.
-* Puedes arrastrar y soltar PDFs, archivos de texto con tus estrategias, e incluso videos tutoriales directamente aquí.
-* Una vez que los subas, yo los analizaré, los mantendré en memoria y usaré todo ese conocimiento experto en trading para programar el proyecto exactamente como tú lo pretendes.
-
-### Opción 2: Programar nuestro propio "Cerebro de Trading" en tu proyecto
-Si lo que quieres es que el *software* que vamos a construir tenga ese conocimiento incorporado (por ejemplo, si vamos a crear un bot de trading o una app de análisis), podemos iniciar un proyecto ahora mismo y usar la **API de Gemini**.
-1. Creamos una carpeta en tu espacio de trabajo donde guardarás todos esos PDFs, notas y videos de trading.
-2. Yo programo un script que lea todos esos archivos (creando nuestro propio NotebookLM local).
-3. El proyecto que construyamos consultará esa base de datos de trading para tomar decisiones, generar alertas o darte consejos precisos.
-
-**¿Cómo prefieres que empecemos?** Si quieres que yo aprenda tus estrategias para ayudarte a programar, **puedes empezar a subir algunos de esos archivos de texto, PDFs o describir tus reglas de trading aquí mismo**, y luego me cuentas qué tipo de proyecto de software de trading quieres que construyamos juntos.
-
-### Alternativas para Integración de Conocimiento (Estilo NotebookLM)
-En el futuro, para que el sistema tenga acceso a una gran base de conocimiento de trading sin depender de subir archivos manualmente en cada sesión, consideraremos las siguientes aproximaciones:
-1. **Gemini API (Recomendada para el proyecto):** Construir nuestra propia aplicación RAG (Retrieval-Augmented Generation) usando la API de Gemini o Google AI Studio. Esta es la vía oficial y escalable para subir múltiples documentos (estrategias, PDFs) y que la IA responda preguntas y tome decisiones basándose estrictamente en ellos.
-2. **NotebookLM Enterprise API:** En caso de contar con Google Cloud, aprovechar la API oficial empresarial para gestionar cuadernos y fuentes de datos.
-3. **Servidores MCP (Model Context Protocol):** Herramientas comunitarias para conectar cuentas individuales de NotebookLM con el agente de IA, útiles para prototipado rápido pero sin garantía de estabilidad a largo plazo.
+## Notas Técnicas para Desarrolladores
+- **Lanzador**: Este proyecto se integra en un menú externo Tkinter en `/home/raul/.gemini/antigravity/scratch/ai_launcher/launcher.py`.
+- **Ejecución Backend**: `cd backend && python main.py` (Se encarga de montar el servidor en el puerto 8766 y permite conexiones CORS del frontend).
+- **CrewAI**: Se creó un prototipo de agentes en `backend/agentes_ia.py` listos para ser cableados como "Motor de Decisión" profundo en iteraciones futuras, si se conecta la API de Gemini Pro.
