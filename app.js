@@ -173,21 +173,46 @@ agentToggle.addEventListener('click', () => {
                     
                     // Lógica de Paper Trading
                     const baseCoin = currentSymbol.split('-')[0].replace('=F', '');
+                    
+                    async function recordTrade(tipo, precio, modo) {
+                        const tradeData = {
+                            hora: new Date().toLocaleString(),
+                            activo: currentSymbol,
+                            tipo: tipo,
+                            precio: precio,
+                            estado: "COMPLETADO",
+                            modo: modo
+                        };
+                        try {
+                            await fetch(`http://localhost:8766/api/trades`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(tradeData)
+                            });
+                            fetchTrades();
+                        } catch (e) {
+                            console.error("Error al guardar operación:", e);
+                        }
+                    }
+
                     if (agentProfile === 'investor') {
                         // Lógica Institucional Largo Plazo (DCA y Value Investing)
                         const rsi = data.indicators.rsi;
                         let amountToBuy = 0;
                         let reason = "";
+                        let modoTrade = "";
 
                         // Pánico extremo (Value Investing)
                         if (rsi && rsi < 30 && portfolio.USDT > 1000) {
                             amountToBuy = 1000; // Comprar fuerte en caída
                             reason = "💰 FONDO OPORTUNIDAD: Pánico histórico (RSI < 30). Comprando en OFERTA!";
+                            modoTrade = "Fondo Oportunidad";
                         } 
                         // DCA habitual
                         else if (portfolio.USDT >= 100) {
                             amountToBuy = 100;
                             reason = "📅 DCA: Compra automática programada de $100 USD.";
+                            modoTrade = "DCA Automático";
                         }
 
                         if (amountToBuy > 0) {
@@ -197,6 +222,7 @@ agentToggle.addEventListener('click', () => {
                             logToTerminal(reason, 'action');
                             logToTerminal(`🏛️ INVERSOR: Comprado ${qty.toFixed(4)} ${baseCoin} a $${currentPrice}. USDT Restante: $${portfolio.USDT.toFixed(2)}`, 'action');
                             updateCapitalDisplay();
+                            recordTrade("COMPRAR", currentPrice, modoTrade);
                         } else if (portfolio.USDT < 100) {
                             logToTerminal(`🏛️ INVERSOR: Sin fondos suficientes para DCA. HODL.`, 'warn');
                         }
@@ -208,6 +234,7 @@ agentToggle.addEventListener('click', () => {
                             portfolio.USDT = 0;
                             logToTerminal(`💰 SIMULACIÓN: COMPRADO ${cantidadAComprar.toFixed(4)} ${baseCoin} a $${currentPrice}`, 'action');
                             updateCapitalDisplay();
+                            recordTrade("COMPRAR", currentPrice, "Scalping");
                         } 
                         else if (data.signal === 'VENDER' && portfolio.ASSET > 0.0001) { // Vender todo
                             const dolaresObtenidos = portfolio.ASSET * currentPrice;
@@ -215,6 +242,7 @@ agentToggle.addEventListener('click', () => {
                             portfolio.ASSET = 0;
                             logToTerminal(`💵 SIMULACIÓN: VENDIDO ${baseCoin} a $${currentPrice}. Nuevo Saldo USDT: $${portfolio.USDT.toFixed(2)}`, 'error');
                             updateCapitalDisplay();
+                            recordTrade("VENDER", currentPrice, "Scalping");
                         }
                     }
                 } else {
@@ -318,3 +346,46 @@ if (newsSourceSelect) {
 document.getElementById('clearLogs').addEventListener('click', () => {
     terminal.innerHTML = '';
 });
+
+async function fetchTrades() {
+    try {
+        const res = await fetch(`http://localhost:8766/api/trades`);
+        const trades = await res.json();
+        const tbody = document.getElementById('tradesTable');
+        if (!tbody) return;
+        
+        if (!trades || trades.length === 0) {
+            tbody.innerHTML = `<tr class="text-slate-500 italic"><td colspan="6" class="py-4 text-center">No hay operaciones registradas aún</td></tr>`;
+            return;
+        }
+        
+        tbody.innerHTML = '';
+        // Mostramos las más recientes arriba
+        trades.slice().reverse().forEach(t => {
+            const tr = document.createElement('tr');
+            tr.className = "border-t border-slate-800";
+            
+            const tipoClass = t.tipo === "COMPRAR" ? "text-green-500" : "text-red-500";
+            
+            tr.innerHTML = `
+                <td class="py-2 text-slate-300">${t.hora}</td>
+                <td class="py-2 font-bold">${t.activo}</td>
+                <td class="py-2 ${tipoClass} font-bold">${t.tipo}</td>
+                <td class="py-2">$${t.precio.toLocaleString()}</td>
+                <td class="py-2 text-blue-400">${t.estado}</td>
+                <td class="py-2 text-slate-400">${t.modo}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    } catch (e) {
+        console.error("Error cargando historial", e);
+    }
+}
+
+// Cargar historial inicial
+fetchTrades();
+
+const refreshTradesBtn = document.getElementById('refreshTradesBtn');
+if (refreshTradesBtn) {
+    refreshTradesBtn.addEventListener('click', fetchTrades);
+}

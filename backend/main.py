@@ -1,5 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+import json
+import os
 
 app = FastAPI(title="Wealth Management API", description="API para el agente de ahorro a largo plazo")
 
@@ -11,9 +14,43 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+TRADES_FILE = "trades_history.json"
+
+class Trade(BaseModel):
+    hora: str
+    activo: str
+    tipo: str
+    precio: float
+    estado: str
+    modo: str
+
 @app.get("/")
 def read_root():
     return {"status": "ok", "message": "Motor de Ahorro AI en línea"}
+
+@app.get("/api/trades")
+def get_trades():
+    if not os.path.exists(TRADES_FILE):
+        return []
+    try:
+        with open(TRADES_FILE, "r") as f:
+            return json.load(f)
+    except:
+        return []
+
+@app.post("/api/trades")
+def save_trade(trade: Trade):
+    trades = []
+    if os.path.exists(TRADES_FILE):
+        try:
+            with open(TRADES_FILE, "r") as f:
+                trades = json.load(f)
+        except:
+            pass
+    trades.append(trade.model_dump())
+    with open(TRADES_FILE, "w") as f:
+        json.dump(trades, f, indent=4)
+    return {"status": "success", "trade": trade.model_dump()}
 
 @app.get("/api/market/price")
 def get_price(symbol: str = "SPY"):
@@ -38,7 +75,6 @@ def get_history(symbol: str = "SPY", timeframe: str = "1d", limit: int = 365):
         import ta
         
         ticker = yf.Ticker(symbol)
-        # timeframe map para yfinance
         interval_map = {"1d": "1d", "1w": "1wk", "1m": "1m"}
         yf_interval = interval_map.get(timeframe, "1d")
         
@@ -73,14 +109,13 @@ def get_history(symbol: str = "SPY", timeframe: str = "1d", limit: int = 365):
 
 @app.get("/api/market/sentiment")
 def get_sentiment(symbol: str = "SPY", source: str = "coindesk"):
-    # Simplificado para mostrar un estado neutro/alcista por defecto para ETFs
     import random
     return {
         "score": round(random.uniform(-0.1, 0.4), 2),
         "estado": "NEUTRAL" if random.random() > 0.5 else "BULLISH",
         "noticias": [
             {"title": f"Resumen macroeconómico y tendencias de {symbol}", "score": 0.2},
-            {"title": f"Análisis a largo plazo de fondos indexados vinculados a {symbol}", "score": 0.1}
+            {"title": f"Análisis a largo plazo de fondos vinculados a {symbol}", "score": 0.1}
         ]
     }
 
