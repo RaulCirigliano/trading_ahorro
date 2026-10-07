@@ -86,11 +86,17 @@ if (agentProfileSelect) {
 }
 
 // Variables de Simulación (Paper Trading)
-let portfolio = {
-    avgPrice: 0,
+let defaultPortfolio = {
     USDT: 100.00,
-    ASSET: 0
+    ASSET: 0,
+    avgPrice: 0
 };
+
+let portfolio = JSON.parse(localStorage.getItem('trading_portfolio')) || { ...defaultPortfolio };
+
+function savePortfolio() {
+    localStorage.setItem('trading_portfolio', JSON.stringify(portfolio));
+}
 
 function closePositionManually() {
     if (portfolio.ASSET <= 0) return;
@@ -108,6 +114,7 @@ function closePositionManually() {
 }
 
 function updateCapitalDisplay() {
+    savePortfolio(); // Persistir siempre que se actualice la pantalla
     const total = portfolio.USDT + (portfolio.ASSET * currentPrice);
     const display = document.getElementById('capitalDisplay');
     if(display) display.innerText = `$${total.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
@@ -519,3 +526,12 @@ const refreshTradesBtn = document.getElementById('refreshTradesBtn');
 if (refreshTradesBtn) {
     refreshTradesBtn.addEventListener('click', fetchTrades);
 }
+
+document.getElementById('resetPortfolioBtn')?.addEventListener('click', () => {
+    if(confirm("¿Estás seguro de reiniciar tu saldo a $100.00 y borrar tu progreso?")) {
+        portfolio = { USDT: 100.00, ASSET: 0, avgPrice: 0 };
+        savePortfolio();
+        updateCapitalDisplay();
+        logToTerminal("🔄 Cuenta de simulación reiniciada a $100.00", "warn");
+    }
+});
