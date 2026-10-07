@@ -87,7 +87,7 @@ if (agentProfileSelect) {
 
 // Variables de Simulación (Paper Trading)
 let portfolio = {
-    USDT: 10000.00,
+    USDT: 100.00,
     ASSET: 0
 };
 
@@ -274,15 +274,15 @@ agentToggle.addEventListener('click', () => {
                         let modoTrade = "";
 
                         // Pánico extremo (Value Investing)
-                        if (rsi && rsi < 30 && portfolio.USDT > 1000) {
-                            amountToBuy = 1000; // Comprar fuerte en caída
+                        if (rsi && rsi < 30 && portfolio.USDT >= 50) {
+                            amountToBuy = 50; // Comprar fuerte en caída
                             reason = "💰 FONDO OPORTUNIDAD: Pánico histórico (RSI < 30). Comprando en OFERTA!";
                             modoTrade = "Fondo Oportunidad";
                         } 
                         // DCA habitual
-                        else if (portfolio.USDT >= 100) {
-                            amountToBuy = 100;
-                            reason = "📅 DCA: Compra automática programada de $100 USD.";
+                        else if (portfolio.USDT >= 10) {
+                            amountToBuy = 10;
+                            reason = "📅 DCA: Compra automática programada de $10 USD.";
                             modoTrade = "DCA Automático";
                         }
 
@@ -297,7 +297,7 @@ agentToggle.addEventListener('click', () => {
                                 amountToBuy: amountToBuy,
                                 qty: qty
                             });
-                        } else if (portfolio.USDT < 100) {
+                        } else if (portfolio.USDT < 10) {
                             logToTerminal(`🏛️ INVERSOR: Sin fondos suficientes para DCA. HODL.`, 'warn');
                         }
                     } else {
