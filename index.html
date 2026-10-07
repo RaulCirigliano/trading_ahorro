@@ -22,10 +22,20 @@
             <div class="bg-slate-950 px-3 py-1 rounded-lg border border-slate-800 flex items-center mr-4">
                 <span class="text-xs text-slate-400 uppercase mr-2 font-bold">Activo:</span>
                 <select id="symbolSelect" class="bg-slate-900 text-white font-bold outline-none cursor-pointer rounded px-2 py-1">
-                    <option class="bg-slate-900 text-white" value="SPY">S&P 500 (Acciones USA)</option>
-                    <option class="bg-slate-900 text-white" value="QQQ">Nasdaq 100 (Tecnología)</option>
-                    <option class="bg-slate-900 text-white" value="GC=F">Oro Físico (Refugio)</option>
-                    <option class="bg-slate-900 text-white" value="BTC-USD">Bitcoin (Macro)</option>
+                    <optgroup label="Mercados Tradicionales">
+                        <option class="bg-slate-900 text-white" value="SPY">🇺🇸 S&P 500 (Acciones USA)</option>
+                        <option class="bg-slate-900 text-white" value="QQQ">🇺🇸 Nasdaq 100 (Tecnología USA)</option>
+                        <option class="bg-slate-900 text-white" value="GC=F">🥇 Oro Físico (Refugio)</option>
+                        <option class="bg-slate-900 text-white" value="BTC-USD">₿ Bitcoin (Macro)</option>
+                    </optgroup>
+                    <optgroup label="China y Mercados Emergentes">
+                        <option class="bg-slate-900 text-white" value="MCHI">🇨🇳 ETF Mercado Total Chino (MCHI)</option>
+                        <option class="bg-slate-900 text-white" value="KWEB">🛒 ETF Gigantes de Internet China (KWEB)</option>
+                    </optgroup>
+                    <optgroup label="Inteligencia Artificial y Robótica">
+                        <option class="bg-slate-900 text-white" value="BOTZ">🤖 ETF Robótica y AI (BOTZ)</option>
+                        <option class="bg-slate-900 text-white" value="NVDA">💻 NVIDIA Corp. (Hardware AI)</option>
+                    </optgroup>
                 </select>
             </div>
             <span class="text-slate-400 text-sm hidden md:inline">Patrimonio (Simulación):</span>
