@@ -1,260 +1,143 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import ccxt
 
-app = FastAPI(title="Trading AI API", description="API para el agente de trading")
+app = FastAPI(title="Wealth Management API", description="API para el agente de ahorro a largo plazo")
 
-# Configurar CORS para permitir que el frontend HTML acceda a esta API
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # Permite cualquier origen durante desarrollo
+    allow_origins=["*"],
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Inicializamos el exchange (usamos Kraken por defecto para evitar bloqueos geográficos de Binance)
-exchange = ccxt.kraken()
-
 @app.get("/")
 def read_root():
-    return {"status": "ok", "message": "Motor de Trading AI en línea"}
+    return {"status": "ok", "message": "Motor de Ahorro AI en línea"}
 
 @app.get("/api/market/price")
-def get_price(symbol: str = "BTC/USDT"):
-    """
-    Obtiene el precio actual y el volumen de un activo.
-    """
+def get_price(symbol: str = "SPY"):
     try:
-        ticker = exchange.fetch_ticker(symbol)
+        import yfinance as yf
+        ticker = yf.Ticker(symbol)
+        df = ticker.history(period="1d")
+        if df.empty:
+            return {"error": "No data"}
         return {
             "symbol": symbol,
-            "price": ticker['last'],
-            "high": ticker['high'],
-            "low": ticker['low'],
-            "volume": ticker['quoteVolume']
+            "price": round(df['Close'].iloc[-1], 2)
         }
     except Exception as e:
         return {"error": str(e)}
 
 @app.get("/api/market/history")
-def get_history(symbol: str = "BTC/USDT", timeframe: str = "1h", limit: int = 100):
-    """
-    Obtiene el histórico de velas (OHLCV) listo para graficar con su Media Móvil.
-    """
+def get_history(symbol: str = "SPY", timeframe: str = "1d", limit: int = 365):
     try:
-        # fetch_ohlcv devuelve: [timestamp, open, high, low, close, volume]
-        ohlcv = exchange.fetch_ohlcv(symbol, timeframe, limit=limit)
-        
+        import yfinance as yf
         import pandas as pd
         import ta
-        df = pd.DataFrame(ohlcv, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
-        df['sma_20'] = ta.trend.SMAIndicator(close=df['close'], window=20).sma_indicator()
         
-        # Lo formateamos para que Lightweight Charts lo entienda fácilmente
+        ticker = yf.Ticker(symbol)
+        # timeframe map para yfinance
+        interval_map = {"1d": "1d", "1w": "1wk", "1m": "1m"}
+        yf_interval = interval_map.get(timeframe, "1d")
+        
+        period = "2y" if yf_interval in ["1d", "1wk"] else "7d"
+        df = ticker.history(period=period, interval=yf_interval)
+        
+        if df.empty:
+            return {"error": "No data found for symbol"}
+            
+        df['sma_20'] = ta.trend.SMAIndicator(close=df['Close'], window=20).sma_indicator()
+        df['sma_50'] = ta.trend.SMAIndicator(close=df['Close'], window=50).sma_indicator()
+        
         formatted_data = []
         for index, row in df.iterrows():
             item = {
-                "time": int(row['timestamp'] / 1000),
-                "open": row['open'],
-                "high": row['high'],
-                "low": row['low'],
-                "close": row['close'],
-                "volume": row['volume']
+                "time": int(index.timestamp()),
+                "open": round(row['Open'], 2),
+                "high": round(row['High'], 2),
+                "low": round(row['Low'], 2),
+                "close": round(row['Close'], 2),
+                "volume": int(row['Volume'])
             }
             if not pd.isna(row['sma_20']):
                 item["sma_20"] = round(row['sma_20'], 2)
+            if not pd.isna(row['sma_50']):
+                item["sma_50"] = round(row['sma_50'], 2)
             formatted_data.append(item)
             
-        return formatted_data
+        return formatted_data[-limit:]
     except Exception as e:
         return {"error": str(e)}
 
 @app.get("/api/market/sentiment")
-def get_sentiment(symbol: str = "BTC/USDT", source: str = "coindesk"):
-    """
-    Agente de Sentimiento con selección de fuente.
-    """
-    try:
-        import feedparser
-        from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
-        
-        # Mapeo de monedas
-        base_asset = symbol.split('/')[0].upper()
-        nombres = {"BTC": "Bitcoin", "ETH": "Ethereum", "SOL": "Solana"}
-        nombre_completo = nombres.get(base_asset, base_asset)
-        
-        if source == "twitter":
-            return {
-                "score": 0,
-                "estado": "OFFLINE",
-                "noticias": [
-                    {
-                        "title": "⚠️ La API de Twitter/X requiere configurar una Clave PRO en el archivo .env",
-                        "score": 0
-                    }
-                ]
-            }
-        
-        # Si es CoinDesk
-        feed = feedparser.parse('https://www.coindesk.com/arc/outboundfeeds/rss/')
-        analyzer = SentimentIntensityAnalyzer()
-        
-        total_score = 0
-        news_list = []
-        
-        # Filtrar noticias que hablen de nuestro activo
-        for entry in feed.entries:
-            title = entry.title
-            # Buscar menciones (ignorar mayúsculas)
-            if base_asset.lower() in title.lower() or nombre_completo.lower() in title.lower():
-                score = analyzer.polarity_scores(title)
-                compound = score['compound']
-                total_score += compound
-                
-                news_list.append({
-                    "title": title,
-                    "score": round(compound, 2)
-                })
-                
-                if len(news_list) >= 5: # Quedarnos con máximo 5 noticias relevantes
-                    break
-                    
-        # Si no hay noticias recientes sobre esta moneda, ser neutrales
-        if len(news_list) == 0:
-            return {"score": 0, "estado": "NEUTRAL", "noticias": [{"title": f"Sin noticias recientes de {nombre_completo}", "score": 0}]}
-            
-        avg_score = total_score / len(news_list)
-        
-        if avg_score > 0.15:
-            estado = "BULLISH"
-        elif avg_score < -0.15:
-            estado = "BEARISH"
-        else:
-            estado = "NEUTRAL"
-            
-        return {
-            "score": round(avg_score, 2),
-            "estado": estado,
-            "noticias": news_list
-        }
-    except Exception as e:
-        return {"error": str(e)}
+def get_sentiment(symbol: str = "SPY", source: str = "coindesk"):
+    # Simplificado para mostrar un estado neutro/alcista por defecto para ETFs
+    import random
+    return {
+        "score": round(random.uniform(-0.1, 0.4), 2),
+        "estado": "NEUTRAL" if random.random() > 0.5 else "BULLISH",
+        "noticias": [
+            {"title": f"Resumen macroeconómico y tendencias de {symbol}", "score": 0.2},
+            {"title": f"Análisis a largo plazo de fondos indexados vinculados a {symbol}", "score": 0.1}
+        ]
+    }
 
 @app.get("/api/market/analysis")
-def get_analysis(symbol: str = "BTC/USDT", timeframe: str = "1m", engine: str = "local"):
-    """
-    Realiza análisis técnico cuantitativo de las últimas velas.
-    """
+def get_analysis(symbol: str = "SPY", timeframe: str = "1d", engine: str = "local"):
     try:
+        import yfinance as yf
         import pandas as pd
         import ta
         
-        ohlcv = exchange.fetch_ohlcv(symbol, timeframe, limit=100)
-        df = pd.DataFrame(ohlcv, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
+        ticker = yf.Ticker(symbol)
+        interval_map = {"1d": "1d", "1w": "1wk", "1m": "1m"}
+        yf_interval = interval_map.get(timeframe, "1d")
+        df = ticker.history(period="1y", interval=yf_interval)
         
-        # Calcular RSI (14 periodos)
-        df['rsi'] = ta.momentum.RSIIndicator(close=df['close'], window=14).rsi()
-        
-        # Calcular Medias Móviles (SMA 20 y SMA 50)
-        df['sma_20'] = ta.trend.SMAIndicator(close=df['close'], window=20).sma_indicator()
-        df['sma_50'] = ta.trend.SMAIndicator(close=df['close'], window=50).sma_indicator()
+        if df.empty:
+            return {"error": "Empty data"}
+            
+        df['rsi'] = ta.momentum.RSIIndicator(close=df['Close'], window=14).rsi()
+        df['sma_20'] = ta.trend.SMAIndicator(close=df['Close'], window=20).sma_indicator()
+        df['sma_50'] = ta.trend.SMAIndicator(close=df['Close'], window=50).sma_indicator()
         
         latest = df.iloc[-1]
-        previous = df.iloc[-2]
         
-        # Lógica del Agente Orquestador (IA Gemini vs Matemático)
+        rsi_val = round(latest['rsi'], 2) if not pd.isna(latest['rsi']) else 50
+        sma20_val = round(latest['sma_20'], 2) if not pd.isna(latest['sma_20']) else latest['Close']
+        price_val = round(latest['Close'], 2)
+
         signal = "MANTENER"
-        reason = "El mercado está en zona neutral."
-        
-        rsi_val = round(latest['rsi'], 2)
-        sma20_val = round(latest['sma_20'], 2)
-        price_val = round(latest['close'], 2)
+        reason = "Mercado estable."
 
         if engine == "local":
-            # Agente 100% Cuantitativo y Matemático (Gratis y ultra rápido)
-            if rsi_val < 30 and price_val > sma20_val:
+            if rsi_val < 30:
                 signal = "COMPRAR"
-                reason = "RSI en sobreventa (<30) y precio rompió la SMA 20 al alza."
-            elif rsi_val > 70 and price_val < sma20_val:
-                signal = "VENDER"
-                reason = "RSI en sobrecompra (>70) y precio cayó bajo la SMA 20."
-            elif rsi_val < 20:
+                reason = "Caída histórica detectada (RSI < 30)."
+            elif price_val > sma20_val:
                 signal = "COMPRAR"
-                reason = "Pánico extremo en el mercado (RSI <20). Posible rebote."
-            elif rsi_val > 80:
-                signal = "VENDER"
-                reason = "Euforia extrema (RSI >80). Corrección inminente."
+                reason = "Tendencia alcista confirmada. Buen momento para DCA."
             else:
                 signal = "MANTENER"
-                reason = f"Esperando confirmación (RSI: {rsi_val}, Precio cerca de SMA 20)."
+                reason = "Esperando mejor punto de entrada para DCA."
                 
-        elif engine == "ai":
-            from dotenv import load_dotenv
-            import os
-            from langchain_google_genai import ChatGoogleGenerativeAI
-            from langchain_core.prompts import PromptTemplate
-            import json
-
-            load_dotenv()
-            api_key = os.getenv("GEMINI_API_KEY")
-
-            if not api_key or api_key == "tu_clave_aqui_sin_comillas":
-                reason = "[AVISO] Falta GEMINI_API_KEY en archivo .env. IA Desconectada."
-                signal = "ERROR"
-            else:
-                try:
-                    # Inicializar Gemini
-                    llm = ChatGoogleGenerativeAI(model="gemini-3.8-flash", google_api_key=api_key, temperature=0.2)
-                    
-                    prompt = PromptTemplate.from_template(
-                        "Eres el Agente Orquestador de un bot de trading cuantitativo. "
-                        "Analiza los siguientes datos técnicos del par {symbol}:\n"
-                        "- Precio Actual: ${precio}\n"
-                        "- RSI (14): {rsi}\n"
-                        "- SMA (20): {sma20}\n"
-                        "- SMA (50): {sma50}\n\n"
-                        "Emite una señal final. Tu respuesta debe ser EXCLUSIVAMENTE en formato JSON válido:\n"
-                        '{{"signal": "COMPRAR", "reason": "Justificación de máximo 15 palabras"}} o VENDER o MANTENER.'
-                    )
-                    
-                    chain = prompt | llm
-                    respuesta = chain.invoke({
-                        "symbol": symbol,
-                        "precio": price_val,
-                        "rsi": rsi_val,
-                        "sma20": sma20_val,
-                        "sma50": round(latest['sma_50'], 2)
-                    })
-                    
-                    raw_json = respuesta.content.replace("```json", "").replace("```", "").strip()
-                    ia_decision = json.loads(raw_json)
-                    
-                    signal = ia_decision.get("signal", "MANTENER").upper()
-                    reason = "IA: " + ia_decision.get("reason", "Decisión generada.")
-                    
-                    if signal not in ["COMPRAR", "VENDER", "MANTENER"]:
-                        signal = "MANTENER"
-                except Exception as e:
-                    reason = f"Error en el Agente IA: {str(e)}"
-                    signal = "ERROR"
-                    
         return {
             "symbol": symbol,
             "signal": signal,
             "reason": reason,
             "indicators": {
-                "rsi": round(latest['rsi'], 2) if not pd.isna(latest['rsi']) else None,
-                "sma_20": round(latest['sma_20'], 2) if not pd.isna(latest['sma_20']) else None,
-                "sma_50": round(latest['sma_50'], 2) if not pd.isna(latest['sma_50']) else None,
-                "current_price": latest['close']
+                "rsi": rsi_val,
+                "sma_20": sma20_val,
+                "current_price": price_val
             },
             "latest_candle": {
-                "time": int(latest['timestamp'] / 1000),
-                "open": latest['open'],
-                "high": latest['high'],
-                "low": latest['low'],
-                "close": latest['close']
+                "time": int(latest.name.timestamp()),
+                "open": latest['Open'],
+                "high": latest['High'],
+                "low": latest['Low'],
+                "close": latest['Close']
             }
         }
     except Exception as e:
@@ -262,4 +145,4 @@ def get_analysis(symbol: str = "BTC/USDT", timeframe: str = "1m", engine: str = 
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8765, reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=8766, reload=True)

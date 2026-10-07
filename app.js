@@ -98,7 +98,7 @@ function updateCapitalDisplay() {
 
 symbolSelect.addEventListener('change', () => {
     currentSymbol = symbolSelect.value;
-    if (chartSymbolTitle) chartSymbolTitle.innerText = currentSymbol.split('/')[0] + '/USD';
+    if (chartSymbolTitle) chartSymbolTitle.innerText = currentSymbol;
     logToTerminal(`Cambiando activo a ${currentSymbol}...`, 'warn');
     candleSeries.setData([]); // Limpiar gráfico
     smaSeries.setData([]);
@@ -172,7 +172,7 @@ agentToggle.addEventListener('click', () => {
                     logToTerminal(`Razonamiento: ${data.reason}`, logType);
                     
                     // Lógica de Paper Trading
-                    const baseCoin = currentSymbol.split('/')[0];
+                    const baseCoin = currentSymbol.split('-')[0].replace('=F', '');
                     if (agentProfile === 'investor') {
                         // Lógica Institucional Largo Plazo (DCA y Value Investing)
                         const rsi = data.indicators.rsi;
