@@ -1,3 +1,43 @@
+
+function updateMarketIntel(symbol) {
+    const intelBody = document.getElementById('intelBody');
+    if (!intelBody) return;
+
+    let htmlContent = "";
+
+    if (symbol === 'BTC-USD') {
+        htmlContent = `
+            <ul class="list-disc pl-5 space-y-2">
+                <li><b class="text-white">Horario Operativo:</b> 24/7 (Nunca cierra).</li>
+                <li><b class="text-white">Horas Doradas:</b> 10:30 AM a 12:30 PM (Hora Bs. As.) cuando abre Wall Street e inyecta liquidez institucional al mundo cripto.</li>
+                <li><b class="text-red-400">⚠️ Zona de la Muerte:</b> Fines de semana por la tarde (Sáb/Dom). El bajo volumen institucional causa "ruido lateral" y caídas erráticas. Apaga el modo "Simulador Educativo" los findes. (Para el Inversor Institucional a largo plazo, no importa).</li>
+            </ul>`;
+    } else if (['SPY', 'QQQ', 'NVDA', 'BOTZ'].includes(symbol)) {
+        htmlContent = `
+            <ul class="list-disc pl-5 space-y-2">
+                <li><b class="text-white">Mercado Base:</b> Wall Street (Nueva York, EE.UU.).</li>
+                <li><b class="text-white">Horario Local:</b> Lunes a Viernes de <b>10:30 AM a 05:00 PM</b> (Hora Buenos Aires).</li>
+                <li><b class="text-indigo-300">Estrategia:</b> Las primeras dos horas (10:30 AM - 12:30 PM) son muy volátiles, ideal si pruebas el Scalper. Para el modo "Inversor Institucional (DCA)", cualquier hora dentro de la ventana de apertura es excelente para promediar. Los fines de semana la bolsa está cerrada.</li>
+            </ul>`;
+    } else if (['MCHI', 'KWEB'].includes(symbol)) {
+        htmlContent = `
+            <ul class="list-disc pl-5 space-y-2">
+                <li><b class="text-white">Activos Subyacentes:</b> Empresas de China y Hong Kong.</li>
+                <li><b class="text-white">Horario del ETF:</b> Cotizan en EE.UU., operables de <b>10:30 AM a 05:00 PM</b> (Hora Bs. As.).</li>
+                <li><b class="text-amber-400">🔥 Secreto Financiero:</b> Aunque las acciones de Tencent o Alibaba se mueven en la madrugada argentina (cuando abre Asia), estos ETFs reaccionan de golpe a las 10:30 AM en Buenos Aires. Esto genera grandes "huecos" (gaps) de precio en la apertura. ¡Ideal para cazar pánicos u ofertas apenas abre el mercado!</li>
+            </ul>`;
+    } else if (symbol === 'GC=F') {
+        htmlContent = `
+            <ul class="list-disc pl-5 space-y-2">
+                <li><b class="text-white">Mercado:</b> Futuros de Materias Primas (Oro).</li>
+                <li><b class="text-white">Horario de Negociación:</b> Casi continuo. De Domingo 19:00 PM a Viernes 18:00 PM (Hora Buenos Aires).</li>
+                <li><b class="text-white">Dinámica:</b> Funciona como refugio. Reacciona violentamente a los datos de inflación de EE.UU. (normalmente a las 09:30 AM Bs. As.) o con el inicio de operaciones en Londres (04:00 AM Bs. As.).</li>
+            </ul>`;
+    }
+
+    intelBody.innerHTML = htmlContent;
+}
+
 // Elementos de UI
 const terminal = document.getElementById('terminal');
 const agentToggle = document.getElementById('agentToggle');
@@ -160,6 +200,7 @@ symbolSelect.addEventListener('change', () => {
     smaSeries.setData([]);
     fetchMarketData();
     updateSentiment();
+    updateMarketIntel(currentSymbol);
 });
 
 // Obtener datos reales del motor Python
@@ -553,3 +594,5 @@ document.getElementById('resetPortfolioBtn')?.addEventListener('click', () => {
         logToTerminal("🔄 Cuenta de simulación reiniciada a $100.00", "warn");
     }
 });
+
+updateMarketIntel(currentSymbol);
