@@ -92,7 +92,13 @@ let defaultPortfolio = {
     avgPrice: 0
 };
 
-let portfolio = JSON.parse(localStorage.getItem('trading_portfolio')) || { ...defaultPortfolio };
+let savedData = JSON.parse(localStorage.getItem('trading_portfolio'));
+let portfolio = { ...defaultPortfolio, ...(savedData || {}) };
+// Sanity check to fix NaN from old versions
+if (isNaN(portfolio.avgPrice) || portfolio.avgPrice === undefined || portfolio.avgPrice === null) portfolio.avgPrice = 0;
+if (isNaN(portfolio.ASSET) || portfolio.ASSET === null) portfolio.ASSET = 0;
+if (isNaN(portfolio.USDT) || portfolio.USDT === null) portfolio.USDT = 100;
+
 
 function savePortfolio() {
     localStorage.setItem('trading_portfolio', JSON.stringify(portfolio));
@@ -335,10 +341,22 @@ agentToggle.addEventListener('click', () => {
                             reason = "💰 FONDO OPORTUNIDAD: Pánico histórico (RSI < 30). Comprando en OFERTA!";
                             modoTrade = "Fondo Oportunidad";
                         } 
+                        // Toma de ganancias (Vender)
+                        else if (data.signal === 'VENDER' && portfolio.ASSET > 0.0001) {
+                            const dolaresObtenidos = portfolio.ASSET * currentPrice;
+                            requestTradeApproval({
+                                tipo: 'VENDER',
+                                baseCoin: baseCoin,
+                                precio: currentPrice,
+                                modoTrade: 'Toma de Ganancias',
+                                reason: 'Señal de sobrecompra o tendencia bajista. Protegiendo capital.',
+                                dolaresObtenidos: dolaresObtenidos
+                            });
+                        }
                         // DCA habitual
-                        else if (portfolio.USDT >= 10) {
+                        else if (data.signal === 'COMPRAR' && portfolio.USDT >= 10) {
                             amountToBuy = 10;
-                            reason = "📅 DCA: Compra automática programada de $10 USD.";
+                            reason = "📅 DCA: Compra automática programada de $10 USD por señal técnica.";
                             modoTrade = "DCA Automático";
                         }
 
